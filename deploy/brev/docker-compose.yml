@@ -1,0 +1,40 @@
+# GSI Partner Enablement Demo — Brev Deployment (No GPU Required)
+# Uses hosted NVIDIA NIM APIs at integrate.api.nvidia.com/v1
+# Waseem Habib — NVIDIA DevRel Interview Demo
+
+services:
+  aira-backend:
+    container_name: aira-backend
+    image: nvcr.io/nvidia/blueprint/aira-backend:v1.2.0
+    entrypoint: "/entrypoint.sh"
+    ports:
+      - "3838:3838"
+    environment:
+      AIRA_HOSTED_NIMS: "true"
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      OPENAI_API_KEY: ${NVIDIA_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-placeholder}
+      AIRA_APPLY_GUARDRAIL: "false"
+      RAG_INGEST_URL: ${RAG_INGEST_URL:-http://localhost:8082/v1}
+      RAG_SERVER_URL: ${RAG_SERVER_URL:-http://localhost:8081/v1}
+    volumes:
+      - ./configs:/app/configs
+    networks:
+      - aira-net
+
+  aira-frontend:
+    container_name: aira-frontend
+    image: nvcr.io/nvidia/blueprint/aira-frontend:v1.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      NVWB_TRIM_PREFIX: "true"
+      INFERENCE_ORIGIN: http://aira-backend:3838
+    depends_on:
+      - aira-backend
+    networks:
+      - aira-net
+
+networks:
+  aira-net:
+    driver: bridge

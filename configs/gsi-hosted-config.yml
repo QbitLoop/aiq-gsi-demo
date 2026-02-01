@@ -1,0 +1,87 @@
+# GSI Partner Enablement Configuration
+# Based on hosted-config.yml — runs entirely on hosted NVIDIA NIM APIs
+# Created: 2026-01-31 for Weihan Interview Demo
+# No local GPUs required — uses integrate.api.nvidia.com/v1
+
+general:
+  use_uvloop: true
+  front_end:
+    _type: aira_frontend
+    endpoints:
+      - path: /generate_query
+        method: POST
+        description: Creates the research plan queries
+        function_name: generate_query
+      - path: /generate_summary
+        method: POST
+        description: Generates the research report
+        function_name: generate_summary
+      - path: /artifact_qa
+        method: POST
+        description: Q/A or chat about a previously generated report
+        function_name: artifact_qa
+      - path: /aiqhealth
+        method: GET
+        description: Health check for the AIQ AIRA service
+        function_name: health_check
+      - path: /default_collections
+        method: GET
+        description: Get the default collections
+        function_name: default_collections
+
+llms:
+  # INSTRUCT MODEL — Report writing and Q&A
+  # Deterministic (temp=0) for consistent, reproducible output
+  # Max tokens: 20000 for long-form report generation
+  instruct_llm:
+    _type: nim
+    model_name: meta/llama-3.3-70b-instruct
+    temperature: 0.0
+    base_url: https://integrate.api.nvidia.com/v1
+    max_tokens: 20000
+
+  # REASONING MODEL — Planning and reflection
+  # Supports thinking tokens (<think> tags) for explicit chain-of-thought
+  # Temperature: 0.5 for creative planning, streaming for real-time output
+  nemotron:
+    _type: nim
+    model_name: nvidia/llama-3.3-nemotron-super-49b-v1.5
+    temperature: 0.5
+    base_url: https://integrate.api.nvidia.com/v1
+    max_tokens: 5000
+    stream: true
+
+functions:
+  generate_query:
+    _type: generate_queries
+
+  generate_summary:
+    _type: generate_summaries
+    rag_url: ${RAG_SERVER_URL:-http://rag-server:8081/v1}
+
+  artifact_qa:
+    _type: artifact_qa
+    llm_name: instruct_llm
+    rag_url: ${RAG_SERVER_URL:-http://rag-server:8081/v1}
+
+  health_check:
+    _type: health_check
+
+  default_collections:
+    _type: default_collections
+    collections:
+      # --- GSI PARTNER ENABLEMENT COLLECTION ---
+      - name: "GSI_Partner_Enablement"
+        topic: "GSI Partner AI Practice Launch"
+        report_organization: "You are a Developer Relations Manager at NVIDIA helping a Global Systems Integrator (GSI) partner launch an AI practice. Create a comprehensive enablement report covering: (1) NVIDIA Partner Network (NPN) registration path from Registered to Preferred to Elite status, (2) recommended NVIDIA AI Blueprints for initial POCs including AI-Q for enterprise research, RAG for knowledge retrieval, and Virtual Assistant for customer service, (3) hardware sizing guidance for pilot deployments comparing hosted NIM APIs versus on-premise DGX infrastructure, (4) AI Center of Excellence (CoE) setup recommendations with staffing and KPIs, (5) go-to-market timeline from Week 1 certification through Week 4 production deployment. Format with clear sections, specific action items, and partner commitment milestones. Reference NVIDIA DLI certifications and the Certified Instructor Program where relevant."
+
+      - name: "GSI_Competitive_Analysis"
+        topic: "NVIDIA vs Hyperscaler AI Platforms"
+        report_organization: "You are a senior technical strategist analyzing the competitive landscape for enterprise AI platforms. Write an analysis comparing NVIDIA AI Enterprise (NIM, NeMo, Blueprints) against hyperscaler alternatives (Azure AI, AWS Bedrock, Google Vertex AI). Cover: (1) inference performance advantages with NIM acceleration and TensorRT-LLM, (2) deployment flexibility across on-premises, hybrid, and multi-cloud environments, (3) partner economics including NGC credits, co-marketing funds, and pipeline commitments, (4) sovereign AI capabilities for regulated industries and data residency requirements, (5) the unique value of NVIDIA Blueprints as production-ready agentic workflows versus generic cloud AI services. Use factual comparisons and cite specific NVIDIA technologies. Format as a strategic briefing with executive summary, detailed sections, and recommendations."
+
+      - name: "Production_Readiness_Guide"
+        topic: "From POC to Production AI Deployment"
+        report_organization: "You are a Principal Solutions Architect with experience deploying AI systems in regulated environments. Create a technical guide for GSI teams moving AI-Q deployments from proof-of-concept to production. Cover: (1) deterministic output requirements including temperature settings and NIM 1.10 token drift mitigation, (2) Kubernetes scaling with NIM Operator 3.0 including NIM Cache for model loading latency and Dynamic Resource Allocation with MIG, (3) vector database optimization with Milvus and NVIDIA cuVS for production search workloads, (4) safety and compliance implementation with NeMo Guardrails including content filtering and PII detection, (5) observability and evaluation using AIQ Toolkit profiling and the RAGAS evaluation framework. Format as a practical deployment guide with configuration examples and troubleshooting guidance."
+
+workflow:
+  _type: ai_researcher
